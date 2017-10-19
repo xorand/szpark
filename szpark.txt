@@ -1,0 +1,4 @@
+1. pip install pyserial pypiwin32 requests
+2. copy to C:\Program Files\Python36\Lib\site-packages\win32\ pythoncom36.dll pywintypes36.dll from C:\Program Files\Python36\Lib\site-packages\pypiwin32_system32\
+3. python szpark.py install
+4. start service
