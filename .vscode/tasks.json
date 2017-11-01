@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "taskName": "restart szpark service",
+            "type": "shell",
+            "windows": {
+                "command": "Start-Process -Verb RunAs powershell -ArgumentList '-command','Restart-Service','SZParkSvc'"
+            },
+            "problemMatcher": []
+        },
+        {
+            "taskName": "stop szpark service",
+            "type": "shell",
+            "windows": {
+                "command": "Start-Process -Verb RunAs powershell -ArgumentList '-command','Stop-Service','SZParkSvc'"
+            },
+            "problemMatcher": []
+        },
+        {
+            "taskName": "watch log",
+            "type": "shell",
+            "windows": {
+                "command": "gc szpark.log -Wait -Force"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
