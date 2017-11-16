@@ -51,6 +51,7 @@ def www_root():
     tpl = """
     <html>
     <table>
+    <tr><td>watchdog thread:</td><td>{}</td></tr>
     <tr><td>scanning thread:</td><td>{}</td></tr>
     <tr><td>parking counter thread:</td><td>{}</td></tr>
     <tr><td>parking counter value:</td><td>{}</td></tr>
@@ -70,6 +71,13 @@ def www_root():
         g_cfg['pc'] = pc_new_value
         update_pc()
         pc_reset()
+    if g_cfg['watchdog']:
+        if g_cfg['th_watch'].is_alive():
+            watch_status = '<font color="#00AA00">alive</font>'
+        else:
+            watch_status = '<font color="#AA0000">dead</font>'
+    else:
+        watch_status = '<font color="#AAAAAA">disabled</font>'
     if g_cfg['th_scan'].is_alive():
         scan_status = '<font color="#00AA00">alive</font>'
     else:
@@ -85,7 +93,7 @@ def www_root():
         pc_status = '<font color="#AAAAAA">disabled</font>'
         pc_value = 0
         pc_remaining = 0
-    return tpl.format(scan_status, pc_status, pc_value, pc_remaining)
+    return tpl.format(watch_status, scan_status, pc_status, pc_value, pc_remaining)
 
 @app.route('/base', methods=['POST', 'GET'])
 @auth.login_required
@@ -102,6 +110,8 @@ def www_base():
     ch_fd = ''
     ch_fp = ''
     ch_t = ''
+    date1 = ''
+    date2 = ''
     if request.method == 'POST':
         if request.form.get('result_ok'):
             result_ok = 'checked'
@@ -118,10 +128,22 @@ def www_base():
         ch_sum = request.form['ch_sum']
         if (ch_sum[-3:-2] != '.') and (ch_sum != ''):
             ch_sum = ch_sum + '.00'
+        date1 = request.form['date1']
+        date2 = request.form['date2']
         ch_fn = request.form['ch_fn']
         ch_fd = request.form['ch_fd']
         ch_fp = request.form['ch_fp']
         ch_t = request.form['ch_t']
+    dt1 = ''
+    try:
+        dt1 = datetime.strptime(date1 + ' 00:00', '%Y-%m-%d %H:%M')
+    except ValueError:
+        pass
+    dt2 = ''
+    try:
+        dt2 = datetime.strptime(date2 + ' 23:59', '%Y-%m-%d %H:%M')
+    except ValueError:
+        pass
     html = """
     <html>
     <table border=1">
@@ -135,7 +157,9 @@ def www_base():
     <th>check fp</th>
     <th>check type</th>
     <tr><td><form action="/base" method="post"></td>
-    <td></td>
+    <td>
+    <input type="date" name="date1" size="2" value={}> - <input type="date" name="date2" size="2" value={}>
+    </td>
     <td>
     <input type="checkbox" name="result_ok" id="id_result_ok" {}><label for="id_result_ok">ok</label>
     <input type="checkbox" name="multiple_use" id="id_multiple_use" {}><label for="id_multiple_use">multiple use</label>
@@ -151,14 +175,14 @@ def www_base():
     <td><input name="ch_fp" type="text" size="7" value={}></td>
     <td><input name="ch_t" type="text" size="1" value={}>
     <input type="submit" value="ok"/></form></td></tr>""".format(
-        result_ok, multiple_use, time_exceed, online_failed, invalid_type, invalid_fn, ch_sum, ch_fn, ch_fd, ch_fp, ch_t)
+        date1, date2, result_ok, multiple_use, time_exceed, online_failed, invalid_type, invalid_fn, ch_sum, ch_fn, ch_fd, ch_fp, ch_t)
     dbfn = __file__.replace('.py', '.sqlite')
     conn = sqlite3.connect(dbfn)
     cursor = conn.cursor()
     num = 1
     sql = 'SELECT strftime("%d.%m.%Y %H:%M:%S", date) , result, strftime("%d.%m.%Y %H:%M:%S", ch_date), ch_sum, ch_fn, ch_fd, ch_fp, ch_t FROM cache'
     s_and = ''
-    if result_ok + multiple_use + time_exceed + online_failed + invalid_type + invalid_fn + ch_sum + ch_fn + ch_fd + ch_fp + ch_t != '':
+    if str(dt1) + str(dt2) + result_ok + multiple_use + time_exceed + online_failed + invalid_type + invalid_fn + ch_sum + ch_fn + ch_fd + ch_fp + ch_t != '':
         sql = sql + ' WHERE'
         if result_ok == 'checked':
             sql, s_and = add_sql_param(sql, 'result', R_OK, s_and)
@@ -177,6 +201,7 @@ def www_base():
         sql, s_and = add_sql_param(sql, 'ch_fd', ch_fd, s_and)
         sql, s_and = add_sql_param(sql, 'ch_fp', ch_fp, s_and)
         sql, s_and = add_sql_param(sql, 'ch_t', ch_t, s_and)
+        sql, s_and = add_sql_param(sql, 'date', (dt1, dt2), s_and)
 
     sql = sql + ' ORDER BY datetime(date) DESC'
     for row in cursor.execute(sql):
@@ -199,10 +224,20 @@ def www_base():
 def add_sql_param(sql, param_name, param_value, s_and):
     """Add filter by param value to sql"""
     if param_value != '':
-        if (param_name == 'result') and (param_value != R_OK):
-            sql = '{}{} {} & {} <> 0'.format(sql, s_and, param_name, param_value)
+        if param_name == 'date':
+            if str(param_value[0]) + str(param_value[1]) != '':
+                if param_value[0] == '':
+                    sql = '{}{} {} <= "{}"'.format(sql, s_and, param_name, param_value[1])
+                else:
+                    if param_value[1] == '':
+                        sql = '{}{} {} >= "{}"'.format(sql, s_and, param_name, param_value[0])
+                    else:
+                        sql = '{}{} {} BETWEEN "{}" AND "{}"'.format(sql, s_and, param_name, param_value[0], param_value[1])
         else:
-            sql = '{}{} {} = "{}"'.format(sql, s_and, param_name, param_value)
+            if (param_name == 'result') and (param_value != R_OK):
+                sql = '{}{} {} & {} <> 0'.format(sql, s_and, param_name, param_value)
+            else:
+                sql = '{}{} {} = "{}"'.format(sql, s_and, param_name, param_value)
         if s_and == '':
             s_and = ' AND'
     return sql, s_and
@@ -325,6 +360,9 @@ def read_cfg():
     g_cfg['www_login'] = config.get('szpark', 'www_login')
     g_cfg['www_pass'] = config.get('szpark', 'www_pass')
     users[g_cfg['www_login']] = g_cfg['www_pass']
+    # watchdog options
+    g_cfg['watchdog'] = config.getboolean('szpark', 'watchdog')
+    g_cfg['watch_interval'] = config.getint('szpark', 'watch_interval')
 
 def pc_reset():
     """Reset parking counters"""
@@ -367,6 +405,20 @@ def open_parking():
             time.sleep(g_cfg['mbctime'])
             mbc.write_coil(g_cfg['mbccoil'], False, unit=1)
             mbc.close()
+
+def watch_th_fn():
+    """Watchdog thread function"""
+    while True:
+        if not g_cfg['th_scan'].is_alive():
+            logging.info('Scan thread restarted')
+            g_cfg['th_scan'] = threading.Thread(target=scan_th_fn, args=())
+            g_cfg['th_scan'].start()
+        if g_cfg['pc_enable']:
+            if not g_cfg['th_pc'].is_alive():
+                logging.info('Parking counter thread restarted')
+                g_cfg['th_pc'] = threading.Thread(target=pc_th_fn, args=())
+                g_cfg['th_pc'].start()
+        time.sleep(g_cfg['watch_interval'])
 
 def pc_th_fn():
     """Thread function for parking counter"""
@@ -493,6 +545,9 @@ def init():
             g_cfg['pc'] = g_cfg['pc_init']
         g_cfg['th_pc'] = threading.Thread(target=pc_th_fn, args=())
         g_cfg['th_pc'].start()
+    if g_cfg['watchdog']:
+        g_cfg['th_watch'] = threading.Thread(target=watch_th_fn, args=())
+        g_cfg['th_watch'].start()
     cursor.close()
     conn.close()
 
