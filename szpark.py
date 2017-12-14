@@ -441,6 +441,7 @@ def pc_th_fn():
 
 def scan_th_fn():
     """Thread function for check scan module"""
+    open_com()
     dbfn = __file__.replace('.py', '.sqlite')
     conn = sqlite3.connect(dbfn)
     cursor = conn.cursor()
@@ -532,7 +533,6 @@ def init():
     cursor.execute('CREATE INDEX IF NOT EXISTS data ON cache (data)')
     cursor.execute('CREATE TABLE IF NOT EXISTS pc(value INT)')
     conn.commit()
-    open_com()
     g_cfg['th_scan'] = threading.Thread(target=scan_th_fn, args=())
     g_cfg['th_scan'].start()
     if g_cfg['pc_enable']:
