@@ -1,3 +1,4 @@
 *.log
+*.log.1
 *.sqlite
 __pycache__/*
