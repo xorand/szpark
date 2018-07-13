@@ -532,11 +532,7 @@ def init():
         ch_t INT)""")
     cursor.execute('CREATE INDEX IF NOT EXISTS data ON cache (data)')
     cursor.execute('CREATE TABLE IF NOT EXISTS pc(value INT)')
-<<<<<<< HEAD
     conn.commit()
-=======
-    conn.commit()    
->>>>>>> b1a68acb99ac765a47b899be20593aa9eb771550
     g_cfg['th_scan'] = threading.Thread(target=scan_th_fn, args=())
     g_cfg['th_scan'].start()
     if g_cfg['pc_enable']:
