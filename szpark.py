@@ -14,10 +14,6 @@ import serial
 from flask import Flask, request, redirect
 from flask_httpauth import HTTPBasicAuth
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
-import win32serviceutil
-import win32service
-import win32event
-import servicemanager
 
 # result constants
 R_OK = 0
@@ -551,33 +547,6 @@ def init():
     cursor.close()
     conn.close()
 
-class SZParkSvc(win32serviceutil.ServiceFramework):
-    """SZ Parking Service main class"""
-    _svc_name_ = "SZParkSvc"
-    _svc_display_name_ = "SZ Parking Service"
-
-    def __init__(self, args):
-        win32serviceutil.ServiceFramework.__init__(self, args)
-        self.stop_event = win32event.CreateEvent(None, 0, 0, None)
-        socket.setdefaulttimeout(60)
-
-    def SvcStop(self):
-        """Stop service method"""
-        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
-        win32event.SetEvent(self.stop_event)
-        logging.info('Stopping service')
-        self.ReportServiceStatus(win32service.SERVICE_STOPPED)
-
-    def SvcDoRun(self):
-        """Main do run service method"""
-        servicemanager.LogMsg(
-            servicemanager.EVENTLOG_INFORMATION_TYPE,
-            servicemanager.PYS_SERVICE_STARTED,
-            (self._svc_name_, '')
-        )
-        init()
-        logging.info('Starting service')
-        app.run(host=g_cfg['www_addr'], port=g_cfg['www_port'])
-
-if __name__ == '__main__':
-    win32serviceutil.HandleCommandLine(SZParkSvc)
+init()
+logging.info('Starting service')
+app.run(host=g_cfg['www_addr'], port=g_cfg['www_port'])

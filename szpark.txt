@@ -1,6 +1,4 @@
-1. Install Visual C++ 2015 Build Tools from http://landinghub.visualstudio.com/visual-cpp-build-tools (required for pymodbus)
-2. Install Python3
-2. Install python modules: pip install pyserial pypiwin32 requests pymodbus flask flask_httpauth
-3. Copy to C:\Program Files\Python36\Lib\site-packages\win32\ pythoncom36.dll pywintypes36.dll from C:\Program Files\Python36\Lib\site-packages\pypiwin32_system32\
-4. Install service: python szpark.py install
+1. Install Python3
+2. Install python modules: pip install pyserial requests pymodbus flask flask_httpauth six
+3. Elevated cmd -> nssm.exe install SZParkSvc "C:\Program Files\Python36\python.exe" "C:\szpark\szpark.py"
 5. Start service
