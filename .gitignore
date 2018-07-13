@@ -1,4 +1,8 @@
 *.log
+<<<<<<< HEAD
 *.log.*
+=======
+*.log.1
+>>>>>>> b1a68acb99ac765a47b899be20593aa9eb771550
 *.sqlite
 __pycache__/*
