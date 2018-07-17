@@ -429,7 +429,11 @@ def pc_th_fn():
                 cnt_out = result.getRegister(0)
                 mbc.close()
                 if g_cfg['pc'] != cnt_in - cnt_out:
-                    g_cfg['pc'] = cnt_in - cnt_out
+                    if (cnt_in - cnt_out) < 0:
+                        g_cfg['pc'] = 0
+                        pc_reset()
+                    else:
+                        g_cfg['pc'] = cnt_in - cnt_out
                     logging.info('Updating parking counter: %d', g_cfg['pc'])
                     update_pc()
         mbc.close()
