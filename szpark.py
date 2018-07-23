@@ -130,6 +130,8 @@ def www_base():
         ch_fd = request.form['ch_fd']
         ch_fp = request.form['ch_fp']
         ch_t = request.form['ch_t']
+    if date1 == '':
+        date1 = datetime.strftime(datetime.now(), "%Y-%m-%d")
     dt1 = ''
     try:
         dt1 = datetime.strptime(date1 + ' 00:00', '%Y-%m-%d %H:%M')
